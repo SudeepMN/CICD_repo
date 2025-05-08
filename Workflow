@@ -1,0 +1,137 @@
+name:  deploy_API_CICD
+ 
+#on: [push]
+on: 
+ push:
+   branches:
+        ----------------
+jobs:
+docker_build_push_acr:
+   name: 'Docker Build and Push to ACR'
+   runs-on: label-semanticlayer1 # self-hosted-runner-semanticlayer # self-hosted runner name
+   outputs:
+     version: ------------------
+     environment: ----------------
+   defaults:
+     run:
+       shell: bash
+   steps:
+   # Checkout the  repository to the GitHub Actions runner
+   - name: Checkout
+     uses: --------------- 
+     with:
+       token: --------------------
+   - name: Azure Login
+     uses: ------------------
+     with:
+       creds: ---------------------
+      allow-no-subscriptions: -------------
+       auth-type: ------------------------
+       environment: -------------
+   - name: --------------
+     run:  ---------------
+       ---------------
+      
+   - name: Read version.txt file
+     id: read_version
+     run: |
+       version= ------------------------
+      environment= --------------------------
+       # Remove leading spaces if there are any
+       version=  -----------------------
+      environment=  ----------------------
+       # Extracting the version and patch number
+      major_minor_patch= ----------------------------
+      major_minor=  ----------------------------
+       patch=  -------------------------
+       # Ensure patch is treated as a number (remove leading zeros)
+      patch=  ------------------  # This forces Bash to interpret it as decimal
+       # Increment patch version
+      new_patch= ----------------
+      new_patch_formatted=  -------------------  # Format as 3 digits (e.g., 010, 011)
+      new_version=  ---------------------------
+       echo "Version: ---------------
+       echo "Environment: --------------      
+       # Set the outputs to be used in other steps
+       echo ":-----------------------
+       echo ": ---------------------
+       echo "VERSION=$new_version" >> $GITHUB_ENV
+       echo "ENVIRONMENT=$environment" >> $GITHUB_ENV
+       # Output the new version
+       echo "Updated version in version.txt to $new_version"
+       # Display Docker Image Tag Before Build
+   - name: ----------------------------
+     run: |
+        image_tag= -----------------------
+         echo "Docker Image Tag Before Build: ------------------
+        
+## prod env
+   - name: -----------------
+     uses: -------------------
+     with:
+       login-server: ---------------------------
+       username: -------------------------------
+       password: -------------------------
+ 
+ 
+   - name: Building the image 
+    working-directory: ----------------------
+     run:  |
+        image_tag= -----------------------------
+         echo "Building Docker image with tag: -----------------
+         docker build . -t $image_tag
+         docker push $image_tag
+     # Display Docker Image  Tag After Build
+   - name: Display Docker Image Tag After Build
+     run: |
+      image_tag=  -----------------------
+       echo "Docker Image Tag After Build: $image_tag"
+   - name: Set up Trivy
+     uses: -------------------
+     with:
+       severity: -----------------------
+       format: ---------------------
+      ignore-unfixed: ------------------------
+       vuln-type: -----------------
+       image-ref: 
+       quiet:
+    continue-on-error: 
+ 
+deploy_container_apps:
+   name: 'Deploy Container App to Azure Container Apps'
+   runs-on: label-semanticlayer1 # self-hosted-runner-semanticlayer # self-hosted runner name
+   needs: docker_build_push_acr
+   environment: ------------------
+ 
+   steps:
+   - name: Azure Login
+     uses: -----------------
+     with:
+       creds: --------------------
+ ## prod env     
+   - name: 'Docker Login'
+     uses: ---------------
+     with:
+       login-server: ------------------
+       username: --------------------
+       password: -----------------
+ 
+   - name: Get last pushed image reference
+     run: |
+        last_pushed_image= --------------------
+         echo "LAST_PUSHED_IMAGE=$last_pushed_image" >> $GITHUB_ENV
+         echo "LAST_PUSHED_IMAGE=$last_pushed_image"
+   - name: Deploy To Container Apps
+     uses: ------------------
+     with:
+      containerAppName: -------------------
+      resourceGroup: -------------------
+       imageToDeploy: 
+ 
+   - name: Remove Local Docker Image
+     if: success()
+     run: |
+         docker images
+         docker rmi ----------------- || echo "Image not found or already removed"
+         docker images
+         docker image prune -f || echo "No dangling images to remove" 
